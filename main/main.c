@@ -373,8 +373,6 @@ void initialiseConfigStruct(void)
  */
 void app_main( void )
 {
-    initialiseConfigStruct();
-
     ESP_LOGI( TAG, "enableLogging: %ld\n", ENABLE_LOGGING );
     ESP_LOGI( TAG, "delayTimeMs: %ld\n", DELAY_TIME_MS );
 
@@ -413,6 +411,10 @@ void app_main( void )
      * This handles WiFi and TCP/IP events and this needs to be called before
      * starting WiFi and the coreMQTT-Agent network manager. */
     ESP_ERROR_CHECK( esp_event_loop_create_default() );
+
+    /* Initialise the remote config struct with the values in the partition
+     * Needs to be done after nvs partitions are initialised and before the tasks start.*/
+    initialiseConfigStruct();
 
     /* Start demo tasks. This needs to be done before starting WiFi and
      * and the coreMQTT-Agent network manager so demos can
