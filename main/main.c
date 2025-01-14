@@ -308,6 +308,64 @@ static void prvStartEnabledDemos( void )
     #endif /* CONFIG_GRI_RUN_QUALIFICATION_TEST */
 }
 
+/* remote-config adds */
+#define MAX_LINE_LENGTH 256  // Maximum length of a line in the CSV file
+#define MAX_KEY_LENGTH 128  // Maximum length of a key
+#define MAX_VALUE_LENGTH 128  // Maximum length of a value
+
+typedef struct ConfigStruct{
+    int32_t delayTimeMs;
+    int32_t enableLogging;
+} ConfigStruct_t;
+
+//extern ConfigStruct_t myConfigStruct;
+ConfigStruct_t myConfigStruct = {0};
+
+#define myConfig ( &myConfigStruct )
+
+#ifndef DELAY_TIME_MS
+    #define DELAY_TIME_MS ( myConfig->delayTimeMs )
+#endif
+
+#ifndef ENABLE_LOGGING
+    #define ENABLE_LOGGING ( myConfig->enableLogging )
+#endif
+
+void initialiseConfigStruct(void);
+
+void initialiseConfigStruct(void)
+{
+    ESP_LOGI( TAG, "#########initialising config struct########\n" );
+    esp_err_t ret;
+
+    nvs_handle_t nvs_handle;
+    ret = nvs_open("rconf", NVS_READONLY, &nvs_handle);
+
+    if (ret != ESP_OK) {
+        ESP_LOGI( TAG, "Error (%s) opening NVS rconf handle!\n", esp_err_to_name(ret) );
+        return;
+    }
+
+    // Read an integer value
+    int32_t delayTimeMs;
+    if (nvs_get_i32( nvs_handle, "delayTimeMs", &delayTimeMs) == ESP_OK ) {
+        ESP_LOGI( TAG, "delayTimeMs: %ld, loaded\n", delayTimeMs );
+    }
+
+    myConfig->delayTimeMs = delayTimeMs;
+
+    // Read an integer value
+    int32_t enableLogging;
+    if (nvs_get_i32( nvs_handle, "enableLogging", &enableLogging) == ESP_OK ) {
+        ESP_LOGI( TAG, "enableLogging: %ld, loaded\n", enableLogging );
+    }
+
+    myConfig->enableLogging = enableLogging;
+
+    nvs_close(nvs_handle);
+}
+/* remote-config adds */
+
 /* Main function definition ***************************************************/
 
 /**
@@ -315,6 +373,12 @@ static void prvStartEnabledDemos( void )
  */
 void app_main( void )
 {
+    initialiseConfigStruct();
+
+    ESP_LOGI( TAG, "enableLogging: %ld\n", ENABLE_LOGGING );
+    ESP_LOGI( TAG, "delayTimeMs: %ld\n", DELAY_TIME_MS );
+
+
     /* This is used to store the return of initialization functions. */
     BaseType_t xRet;
 
