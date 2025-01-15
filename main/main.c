@@ -314,8 +314,8 @@ static void prvStartEnabledDemos( void )
 #define MAX_VALUE_LENGTH 128  // Maximum length of a value
 
 typedef struct ConfigStruct{
-    int32_t delayTimeMs;
-    int32_t enableLogging;
+    uint32_t delayTimeMs;
+    uint32_t enableLogging;
 } ConfigStruct_t;
 
 //extern ConfigStruct_t myConfigStruct;
@@ -354,16 +354,16 @@ void initialiseConfigStruct(void)
     }
 
     // Read an integer value
-    int32_t delayTimeMs;
-    if (nvs_get_i32( nvs_handle, "delayTimeMs", &delayTimeMs) == ESP_OK ) {
+    uint32_t delayTimeMs;
+    if (nvs_get_u32( nvs_handle, "delayTimeMs", &delayTimeMs) == ESP_OK ) {
         ESP_LOGI( TAG, "delayTimeMs: %ld, loaded\n", delayTimeMs );
     }
 
     myConfig->delayTimeMs = delayTimeMs;
 
     // Read an integer value
-    int32_t enableLogging;
-    if (nvs_get_i32( nvs_handle, "enableLogging", &enableLogging) == ESP_OK ) {
+    uint32_t enableLogging;
+    if (nvs_get_u32( nvs_handle, "enableLogging", &enableLogging) == ESP_OK ) {
         ESP_LOGI( TAG, "enableLogging: %ld, loaded\n", enableLogging );
     }
 
