@@ -784,6 +784,106 @@ static bool imageActivationHandler( void )
 
 /*-----------------------------------------------------------*/
 
+
+static bool uintFromString( const char * string,
+                            const uint32_t length,
+                            uint32_t * value )
+{
+    bool ret = false;
+    bool overflow = false;
+    uint32_t retVal = 0U;
+    size_t i;
+
+    if( ( string != NULL ) && ( value != NULL ) )
+    {
+        for( i = 0U; ( i < length ) && !overflow; i++ )
+        {
+            char c = string[ i ];
+
+            if( !charIsDigit( c ) )
+            {
+                break;
+            }
+            else
+            {
+                if( !multOverflowUnit32( retVal, 10U ) )
+                {
+                    retVal *= 10U;
+
+                    if( !addOverflowUint32( retVal, ( ( uint32_t ) c - ( uint32_t ) '0' ) ) )
+                    {
+                        retVal += ( ( uint32_t ) c - ( uint32_t ) '0' );
+                    }
+                    else
+                    {
+                        overflow = true;
+                    }
+                }
+                else
+                {
+                    overflow = true;
+                }
+            }
+        }
+
+        if( ( length > 0U ) && ( i == length ) )
+        {
+            *value = retVal;
+            ret = true;
+        }
+    }
+
+    return ret;
+}
+
+
+
+
+static void jobDocParser( const char * jobDoc,
+                                  const size_t jobDocLength,
+                                  const uint8_t fileIndex,
+                                  AfrOtaJobDocumentFields_t * fields )
+{
+    bool fieldsPopulated = false;
+    int8_t nextFileIndex = -1;
+
+    uint32_t delayTimeMs;
+    const char * delayTimeMsStr;
+    const uint32_t delayTimeMsLength;
+
+    int32_t enableLogging;
+
+    JSONStatus_t jsonResult = JSONNotFound;
+
+    if( ( jobDoc != NULL ) && ( jobDocLength > 0U ) )
+    {
+
+        jsonResult = JSON_SearchConst( jobDoc,
+                                jobDocLength,
+                                "delayTimeMs",
+                                11U,
+                                delayTimeMsStr,
+                                &delayTimeMsLength,
+                                NULL );
+        if(jsonResult == JSONSuccess && uintFromString( delayTimeMsStr,
+                                                delayTimeMsLength,
+                                                &delayTimeMs) )
+        {
+            // Partition mei dalna hai
+            ESP_LOGI( TAG, "##########I am here. delayTimeMs = %ld########## \n,", delayTimeMs );
+
+        }
+
+        
+
+        // if( fieldsPopulated )
+        // {
+        //     nextFileIndex = ( isJobFileIndexValid( jobDoc, jobDocLength, fileIndex + 1U ) ) ? ( int8_t ) ( ( int8_t ) fileIndex + 1 ) : ( int8_t ) 0;
+        // }
+    }
+}                            
+
+
 static bool jobDocumentParser( char * message,
                                size_t messageLength,
                                AfrOtaJobDocumentFields_t * jobFields )
@@ -800,28 +900,29 @@ static bool jobDocumentParser( char * message,
 
     if( jobDocLength != 0U )
     {
-        do
-        {
-            /*
-             * AWS IoT Jobs library:
-             * Parsing the OTA job document to extract all of the parameters needed to download
-             * the new firmware.
-             */
-            fileIndex = otaParser_parseJobDocFile( jobDoc,
-                                                   jobDocLength,
-                                                   fileIndex,
-                                                   jobFields );
-        } while( fileIndex > 0 );
+        
+        
+        /*
+            * AWS IoT Jobs library:
+            * Parsing the OTA job document to extract all of the parameters needed to download
+            * the new firmware.
+            */
+        jobDocParser( jobDoc,
+                                jobDocLength,
+                                fileIndex,
+                                jobFields );
+
+
     }
 
     /* File index will be -1 if an error occurred, and 0 if all files were
      * processed. */
-    return fileIndex == 0;
+    return true;
 }
 
 /*-----------------------------------------------------------*/
 
-static OtaPalJobDocProcessingResult_t receivedJobDocumentHandler( OtaJobEventData_t * jobDoc )
+static bool receivedJobDocumentHandler( OtaJobEventData_t * jobDoc )
 {
     bool parseJobDocument = false;
     bool handled = false;
@@ -846,10 +947,10 @@ static OtaPalJobDocProcessingResult_t receivedJobDocumentHandler( OtaJobEventDat
             parseJobDocument = true;
             strncpy( globalJobId, jobId, jobIdLength );
         }
-        else
-        {
-            xResult = OtaPalJobDocFileCreated;
-        }
+        // else
+        // {
+        //     xResult = OtaPalJobDocFileCreated;
+        // }
     }
 
     if( parseJobDocument )
@@ -858,30 +959,37 @@ static OtaPalJobDocProcessingResult_t receivedJobDocumentHandler( OtaJobEventDat
 
         if( handled )
         {
-            initMqttDownloader( &jobFields );
+            xResult = true;
+
+
+            // initMqttDownloader( &jobFields );
 
             /* AWS IoT core returns the signature in a PEM format. We need to
              * convert it to DER format for image signature verification. */
 
-            handled = convertSignatureToDER( &jobFields );
 
-            if( handled )
-            {
-                palStatus = otaPal_CreateFileForRx( &jobFields );
+//ishangg
+            // handled = convertSignatureToDER( &jobFields );
 
-                if( palStatus == OtaPalSuccess )
-                {
-                    xResult = OtaPalJobDocFileCreated;
-                }
-                else
-                {
-                    xResult = OtaPalNewImageBooted;
-                }
-            }
-            else
-            {
-                ESP_LOGE( TAG, "Failed to decode the image signature to DER format." );
-            }
+            // if( handled )
+            // {
+            //     palStatus = otaPal_CreateFileForRx( &jobFields );
+
+            //     if( palStatus == OtaPalSuccess )
+            //     {
+            //         xResult = OtaPalJobDocFileCreated;
+            //     }
+            //     else
+            //     {
+            //         xResult = OtaPalNewImageBooted;
+            //     }
+            // }
+            // else
+            // {
+            //     ESP_LOGE( TAG, "Failed to decode the image signature to DER format." );
+            // }
+
+
         }
     }
 
@@ -1486,7 +1594,18 @@ void vStartOTACodeSigningDemo( void )
 
     xCoreMqttAgentManagerRegisterHandler( prvCoreMqttAgentEventHandler );
 
-    if( ( xResult = xTaskCreate( prvOTADemoTask,
+    // if( ( xResult = xTaskCreate( prvOTADemoTask,
+    //                              "OTADemoTask",
+    //                              otademoconfigDEMO_TASK_STACK_SIZE,
+    //                              NULL,
+    //                              otademoconfigDEMO_TASK_PRIORITY,
+    //                              NULL ) ) != pdPASS )
+    // {
+    //     ESP_LOGE( TAG, "Failed to start OTA task: errno=%d", xResult );
+    // }
+
+
+        if( ( xResult = xTaskCreate( prvOTADemoTask,
                                  "OTADemoTask",
                                  otademoconfigDEMO_TASK_STACK_SIZE,
                                  NULL,
