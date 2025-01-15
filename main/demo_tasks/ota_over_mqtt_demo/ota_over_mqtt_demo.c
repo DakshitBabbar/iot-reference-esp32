@@ -872,6 +872,8 @@ static void jsonParser( const char * jobDoc,
     const uint32_t delayTimeMsLength;
 
     int32_t enableLogging;
+    const char * enableLoggingStr = NULL;
+    const uint32_t enableLoggingLength;
 
     JSONStatus_t jsonResult = JSONNotFound;
 
@@ -896,6 +898,31 @@ static void jsonParser( const char * jobDoc,
             ESP_LOGI( TAG, "##########I am here. delayTimeMs = %ld########## \n,", delayTimeMs );
 
         }
+
+
+                // Parse enableLogging
+        jsonResult = JSON_SearchConst(jobDoc,
+                                      jobDocLength,
+                                      "enableLogging",
+                                      13U,
+                                      &enableLoggingStr,
+                                      &enableLoggingLength,
+                                      NULL);
+        
+        if (jsonResult == JSONSuccess && uintFromString(enableLoggingStr,
+                                                        enableLoggingLength,
+                                                        &enableLogging))
+        {
+            ESP_LOGI(TAG, "Parsed enableLogging = %lu", enableLogging);
+            fieldsPopulated = true;
+        }
+        else
+        {
+            ESP_LOGE(TAG, "Failed to parse enableLogging");
+        }
+
+
+
 
         
 
