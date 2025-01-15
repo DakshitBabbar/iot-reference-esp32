@@ -338,8 +338,15 @@ void initialiseConfigStruct(void)
     ESP_LOGI( TAG, "#########initialising config struct########\n" );
     esp_err_t ret;
 
+    // Initialize NVS for the "rconf" partition
+    ret = nvs_flash_init_partition("rconf");
+    if (ret != ESP_OK) {
+        ESP_LOGI(TAG, "Error initializing NVS partition 'rconf': %s", esp_err_to_name(ret));
+        return;
+    }
+
     nvs_handle_t nvs_handle;
-    ret = nvs_open("rconf", NVS_READONLY, &nvs_handle);
+    ret = nvs_open_from_partition("rconf", "rConfParameters", NVS_READONLY, &nvs_handle);
 
     if (ret != ESP_OK) {
         ESP_LOGI( TAG, "Error (%s) opening NVS rconf handle!\n", esp_err_to_name(ret) );
@@ -373,10 +380,6 @@ void initialiseConfigStruct(void)
  */
 void app_main( void )
 {
-    ESP_LOGI( TAG, "enableLogging: %ld\n", ENABLE_LOGGING );
-    ESP_LOGI( TAG, "delayTimeMs: %ld\n", DELAY_TIME_MS );
-
-
     /* This is used to store the return of initialization functions. */
     BaseType_t xRet;
 
@@ -415,6 +418,9 @@ void app_main( void )
     /* Initialise the remote config struct with the values in the partition
      * Needs to be done after nvs partitions are initialised and before the tasks start.*/
     initialiseConfigStruct();
+
+    ESP_LOGI( TAG, "enableLogging: %ld\n", ENABLE_LOGGING );
+    ESP_LOGI( TAG, "delayTimeMs: %ld\n", DELAY_TIME_MS );
 
     /* Start demo tasks. This needs to be done before starting WiFi and
      * and the coreMQTT-Agent network manager so demos can
