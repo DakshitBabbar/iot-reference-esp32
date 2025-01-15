@@ -321,7 +321,7 @@ static OtaMqttStatus_t prvMQTTUnsubscribe( const char * pTopicFilter,
  *
  * @param[in] pvParam Any parameters to be passed to OTA demo task.
  */
-static void prvOTADemoTask( void * pvParam );
+static void prvJobHandlerTask( void * pvParam );
 
 /**
  * @brief Matches a client identifier within an OTA topic.
@@ -1172,6 +1172,7 @@ bool otaDemo_handleIncomingMQTTMessage( char * topic,
 
         if( handled )
         {
+            ESP_LOGI( TAG, "Line 1175: otaDemo_handleIncomingMQTTMessage");
             memcpy( jobDocBuffer.jobData, message, messageLength );
             nextEvent.jobEvent = &jobDocBuffer;
             jobDocBuffer.jobDataLength = messageLength;
@@ -1526,7 +1527,7 @@ static void prvResumeOTA( void )
 
 /*-----------------------------------------------------------*/
 
-static void prvOTADemoTask( void * pvParam )
+static void prvJobHandlerTask( void * pvParam )
 {
     ( void ) pvParam;
     /* FreeRTOS APIs return status. */
@@ -1666,7 +1667,7 @@ void vStartOTACodeSigningDemo( void )
 
     xCoreMqttAgentManagerRegisterHandler( prvCoreMqttAgentEventHandler );
 
-    // if( ( xResult = xTaskCreate( prvOTADemoTask,
+    // if( ( xResult = xTaskCreate( prvJobHandlerTask,
     //                              "OTADemoTask",
     //                              otademoconfigDEMO_TASK_STACK_SIZE,
     //                              NULL,
@@ -1677,7 +1678,7 @@ void vStartOTACodeSigningDemo( void )
     // }
 
 
-        if( ( xResult = xTaskCreate( prvOTADemoTask,
+        if( ( xResult = xTaskCreate( prvJobHandlerTask,
                                  "OTADemoTask",
                                  otademoconfigDEMO_TASK_STACK_SIZE,
                                  NULL,
@@ -1745,6 +1746,7 @@ bool vOTAProcessMessage( void * pvIncomingPublishCallbackContext,
 
         if( isMatch )
         {
+            ESP_LOGI( TAG, "Line 1749: vOTAProcessMessage");
             memcpy( jobDocBuffer.jobData, pxPublishInfo->pPayload, pxPublishInfo->payloadLength );
             nextEvent.jobEvent = &jobDocBuffer;
             nextEvent.eventId = OtaAgentEventReceivedJobDocument;
@@ -1768,6 +1770,7 @@ bool vOTAProcessMessage( void * pvIncomingPublishCallbackContext,
 
         if( isMatch == true )
         {
+            ESP_LOGI( TAG, "Line 1772: vOTAProcessMessage");
             memcpy( jobDocBuffer.jobData, pxPublishInfo->pPayload, pxPublishInfo->payloadLength );
             nextEvent.jobEvent = &jobDocBuffer;
             nextEvent.eventId = OtaAgentEventReceivedJobDocument;
