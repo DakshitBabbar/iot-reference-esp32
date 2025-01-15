@@ -62,6 +62,8 @@
 /* MQTT library includes. */
 #include "core_mqtt_agent.h"
 
+#include "core_json.h"
+
 /* Subscription manager header include. */
 #include "subscription_manager.h"
 
@@ -784,11 +786,28 @@ static bool imageActivationHandler( void )
 
 /*-----------------------------------------------------------*/
 
+static bool addOverflowUint32( const uint32_t a,
+                               const uint32_t b )
+{
+    return a > ( UINT32_MAX - b );
+}
+
+static bool multOverflowUnit32( const uint32_t a,
+                                const uint32_t b )
+{
+    return ( b > 0U ) && ( a > ( UINT32_MAX / b ) );
+}
+
+static bool charIsDigit( const char c )
+{
+    return ( c >= '0' ) && ( c <= '9' );
+}
 
 static bool uintFromString( const char * string,
                             const uint32_t length,
                             uint32_t * value )
 {
+    ESP_LOGI( TAG, "Entering uintFromString" );
     bool ret = false;
     bool overflow = false;
     uint32_t retVal = 0U;
@@ -832,23 +851,24 @@ static bool uintFromString( const char * string,
             ret = true;
         }
     }
-
+    ESP_LOGI( TAG, "Return from uIntFromString %d", ret );
     return ret;
 }
 
 
 
 
-static void jobDocParser( const char * jobDoc,
+static void jsonParser( const char * jobDoc,
                                   const size_t jobDocLength,
                                   const uint8_t fileIndex,
                                   AfrOtaJobDocumentFields_t * fields )
 {
+    ESP_LOGI( TAG, "Entering jsonParser \n" );
     bool fieldsPopulated = false;
     int8_t nextFileIndex = -1;
 
     uint32_t delayTimeMs;
-    const char * delayTimeMsStr;
+    const char * delayTimeMsStr = NULL;
     const uint32_t delayTimeMsLength;
 
     int32_t enableLogging;
@@ -857,14 +877,17 @@ static void jobDocParser( const char * jobDoc,
 
     if( ( jobDoc != NULL ) && ( jobDocLength > 0U ) )
     {
+        ESP_LOGI( TAG, "Entering 1st if condition of json parser" );
+
 
         jsonResult = JSON_SearchConst( jobDoc,
                                 jobDocLength,
                                 "delayTimeMs",
                                 11U,
-                                delayTimeMsStr,
+                                &delayTimeMsStr,
                                 &delayTimeMsLength,
                                 NULL );
+        ESP_LOGI( TAG, "json result %d",jsonResult );
         if(jsonResult == JSONSuccess && uintFromString( delayTimeMsStr,
                                                 delayTimeMsLength,
                                                 &delayTimeMs) )
@@ -888,6 +911,7 @@ static bool jobDocumentParser( char * message,
                                size_t messageLength,
                                AfrOtaJobDocumentFields_t * jobFields )
 {
+    ESP_LOGI( TAG, "Entering jobDocumentParser \n" );
     const char * jobDoc;
     size_t jobDocLength = 0U;
     int8_t fileIndex = 0;
@@ -907,7 +931,7 @@ static bool jobDocumentParser( char * message,
             * Parsing the OTA job document to extract all of the parameters needed to download
             * the new firmware.
             */
-        jobDocParser( jobDoc,
+        jsonParser( jobDoc,
                                 jobDocLength,
                                 fileIndex,
                                 jobFields );
@@ -922,8 +946,9 @@ static bool jobDocumentParser( char * message,
 
 /*-----------------------------------------------------------*/
 
-static bool receivedJobDocumentHandler( OtaJobEventData_t * jobDoc )
+static int32_t receivedJobDocumentHandler( OtaJobEventData_t * jobDoc )
 {
+    ESP_LOGI( TAG, "Entering receivedJobDocumentHandler. \n" );
     bool parseJobDocument = false;
     bool handled = false;
     char * jobId;
@@ -942,58 +967,21 @@ static bool receivedJobDocumentHandler( OtaJobEventData_t * jobDoc )
 
     if( jobIdLength )
     {
+        ESP_LOGI( TAG, "Entering jobIdLength globalJobId %s & jobId %s \n",globalJobId,jobId );
         if( strncmp( globalJobId, jobId, jobIdLength ) )
         {
+            ESP_LOGI( TAG, "Entering strncmp \n" );
             parseJobDocument = true;
             strncpy( globalJobId, jobId, jobIdLength );
         }
-        // else
-        // {
-        //     xResult = OtaPalJobDocFileCreated;
-        // }
     }
 
     if( parseJobDocument )
     {
         handled = jobDocumentParser( ( char * ) jobDoc->jobData, jobDoc->jobDataLength, &jobFields );
-
-        if( handled )
-        {
-            xResult = true;
-
-
-            // initMqttDownloader( &jobFields );
-
-            /* AWS IoT core returns the signature in a PEM format. We need to
-             * convert it to DER format for image signature verification. */
-
-
-//ishangg
-            // handled = convertSignatureToDER( &jobFields );
-
-            // if( handled )
-            // {
-            //     palStatus = otaPal_CreateFileForRx( &jobFields );
-
-            //     if( palStatus == OtaPalSuccess )
-            //     {
-            //         xResult = OtaPalJobDocFileCreated;
-            //     }
-            //     else
-            //     {
-            //         xResult = OtaPalNewImageBooted;
-            //     }
-            // }
-            // else
-            // {
-            //     ESP_LOGE( TAG, "Failed to decode the image signature to DER format." );
-            // }
-
-
-        }
     }
 
-    return xResult;
+    return 100;
 }
 
 /*-----------------------------------------------------------*/
@@ -1232,6 +1220,12 @@ static void processOTAEvents( void )
             {
                 switch( receivedJobDocumentHandler( recvEvent.jobEvent ) )
                 {
+                    case 100:
+                        ESP_LOGI( TAG, "Received Remote config Job. \n" );
+                        nextEvent.eventId = OtaAgentEventRequestJobDocument;
+                        OtaSendEvent_FreeRTOS( &nextEvent );
+                        otaAgentState = OtaAgentStateRequestingJob;
+                        break;
                     case OtaPalJobDocFileCreated:
                         ESP_LOGI( TAG, "Received OTA Job. \n" );
                         nextEvent.eventId = OtaAgentEventRequestFileBlock;
