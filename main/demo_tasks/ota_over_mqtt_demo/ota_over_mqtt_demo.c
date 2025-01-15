@@ -55,6 +55,8 @@
 #include "esp_log.h"
 #include "esp_event.h"
 #include "sdkconfig.h"
+#include "esp_system.h"
+#include <nvs_flash.h>
 
 /* OTA library configuration include. */
 #include "ota_over_mqtt_demo_config.h"
@@ -785,6 +787,14 @@ static bool imageActivationHandler( void )
 }
 
 /*-----------------------------------------------------------*/
+typedef struct ConfigStruct{
+    uint32_t delayTimeMs;
+    uint32_t enableLogging;
+} ConfigStruct_t;
+
+extern ConfigStruct_t myConfigStruct;
+
+#define myConfig ( &myConfigStruct )
 
 static bool addOverflowUint32( const uint32_t a,
                                const uint32_t b )
@@ -855,7 +865,47 @@ static bool uintFromString( const char * string,
     return ret;
 }
 
+void updateRconfPartition()
+{
+    nvs_handle_t nvs_handle;
+    esp_err_t ret;
+    
+    // Open NVS with READWRITE access
+    ret = nvs_open_from_partition("rconf", "rConfParameters", NVS_READWRITE, &nvs_handle);
+    if (ret != ESP_OK) {
+        ESP_LOGI(TAG, "Error (%s) opening NVS rconf handle!\n", esp_err_to_name(ret));
+        return;
+    }
 
+    // Set an integer value for "delayTimeMs"
+    uint32_t delayTimeMs = myConfig->delayTimeMs;
+    ret = nvs_set_u32(nvs_handle, "delayTimeMs", delayTimeMs);
+    if (ret == ESP_OK) {
+        ESP_LOGI(TAG, "delayTimeMs: %ld, set successfully", delayTimeMs);
+    } else {
+        ESP_LOGI(TAG, "Error setting delayTimeMs: %s", esp_err_to_name(ret));
+    }
+
+    // Set an integer value for "enableLogging"
+    uint32_t enableLogging = myConfig->enableLogging; // Example value (1 for true, 0 for false)
+    ret = nvs_set_u32(nvs_handle, "enableLogging", enableLogging);
+    if (ret == ESP_OK) {
+        ESP_LOGI(TAG, "enableLogging: %ld, set successfully", enableLogging);
+    } else {
+        ESP_LOGI(TAG, "Error setting enableLogging: %s", esp_err_to_name(ret));
+    }
+
+    // Commit changes to NVS
+    ret = nvs_commit(nvs_handle);
+    if (ret == ESP_OK) {
+        ESP_LOGI(TAG, "Changes committed successfully to NVS.");
+    } else {
+        ESP_LOGI(TAG, "Error committing changes to NVS: %s", esp_err_to_name(ret));
+    }
+
+    // Close the NVS handle
+    nvs_close(nvs_handle);
+}
 
 
 static void jsonParser( const char * jobDoc,
@@ -871,7 +921,7 @@ static void jsonParser( const char * jobDoc,
     const char * delayTimeMsStr = NULL;
     const uint32_t delayTimeMsLength;
 
-    int32_t enableLogging;
+    uint32_t enableLogging;
     const char * enableLoggingStr = NULL;
     const uint32_t enableLoggingLength;
 
@@ -898,9 +948,13 @@ static void jsonParser( const char * jobDoc,
             ESP_LOGI( TAG, "##########I am here. delayTimeMs = %ld########## \n,", delayTimeMs );
 
         }
+        else
+        {
+            ESP_LOGE(TAG, "Failed to parse delayTimeMs");
+        }
 
 
-                // Parse enableLogging
+        // Parse enableLogging
         jsonResult = JSON_SearchConst(jobDoc,
                                       jobDocLength,
                                       "enableLogging",
@@ -920,16 +974,13 @@ static void jsonParser( const char * jobDoc,
         {
             ESP_LOGE(TAG, "Failed to parse enableLogging");
         }
-
-
-
-
         
+        myConfig->delayTimeMs = delayTimeMs;
+        myConfig->enableLogging = enableLogging;
 
-        // if( fieldsPopulated )
-        // {
-        //     nextFileIndex = ( isJobFileIndexValid( jobDoc, jobDocLength, fileIndex + 1U ) ) ? ( int8_t ) ( ( int8_t ) fileIndex + 1 ) : ( int8_t ) 0;
-        // }
+        updateRconfPartition();
+
+        esp_restart();
     }
 }                            
 
