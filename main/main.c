@@ -36,6 +36,9 @@
 #include <freertos/semphr.h>
 #include <freertos/queue.h>
 
+/* Remote Configuration includes */
+#include "remote_configuration.h"
+
 /* ESP-IDF includes. */
 #include <esp_err.h>
 #include <esp_log.h>
@@ -307,71 +310,6 @@ static void prvStartEnabledDemos( void )
         configASSERT( xResult == pdPASS );
     #endif /* CONFIG_GRI_RUN_QUALIFICATION_TEST */
 }
-
-/* remote-config adds */
-#define MAX_LINE_LENGTH 256  // Maximum length of a line in the CSV file
-#define MAX_KEY_LENGTH 128  // Maximum length of a key
-#define MAX_VALUE_LENGTH 128  // Maximum length of a value
-
-typedef struct ConfigStruct{
-    uint32_t delayTimeMs;
-    uint32_t enableLogging;
-} ConfigStruct_t;
-
-//extern ConfigStruct_t myConfigStruct;
-ConfigStruct_t myConfigStruct = {0};
-
-#define myConfig ( &myConfigStruct )
-
-#ifndef DELAY_TIME_MS
-    #define DELAY_TIME_MS ( myConfig->delayTimeMs )
-#endif
-
-#ifndef ENABLE_LOGGING
-    #define ENABLE_LOGGING ( myConfig->enableLogging )
-#endif
-
-void initialiseConfigStruct(void);
-
-void initialiseConfigStruct(void)
-{
-    ESP_LOGI( TAG, "#########initialising config struct########\n" );
-    esp_err_t ret;
-
-    // Initialize NVS for the "rconf" partition
-    ret = nvs_flash_init_partition("rconf");
-    if (ret != ESP_OK) {
-        ESP_LOGI(TAG, "Error initializing NVS partition 'rconf': %s", esp_err_to_name(ret));
-        return;
-    }
-
-    nvs_handle_t nvs_handle;
-    ret = nvs_open_from_partition("rconf", "rConfParameters", NVS_READONLY, &nvs_handle);
-
-    if (ret != ESP_OK) {
-        ESP_LOGI( TAG, "Error (%s) opening NVS rconf handle!\n", esp_err_to_name(ret) );
-        return;
-    }
-
-    // Read an integer value
-    uint32_t delayTimeMs;
-    if (nvs_get_u32( nvs_handle, "delayTimeMs", &delayTimeMs) == ESP_OK ) {
-        ESP_LOGI( TAG, "delayTimeMs: %ld, loaded\n", delayTimeMs );
-    }
-
-    myConfig->delayTimeMs = delayTimeMs;
-
-    // Read an integer value
-    uint32_t enableLogging;
-    if (nvs_get_u32( nvs_handle, "enableLogging", &enableLogging) == ESP_OK ) {
-        ESP_LOGI( TAG, "enableLogging: %ld, loaded\n", enableLogging );
-    }
-
-    myConfig->enableLogging = enableLogging;
-
-    nvs_close(nvs_handle);
-}
-/* remote-config adds */
 
 /* Main function definition ***************************************************/
 

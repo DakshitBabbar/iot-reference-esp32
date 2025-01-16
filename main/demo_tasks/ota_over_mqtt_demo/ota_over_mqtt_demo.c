@@ -95,6 +95,12 @@
 /* Demo task configurations include. */
 #include "ota_over_mqtt_demo_config.h"
 
+/* Application Includes*/
+#include "LED_Blinker.h"
+
+/* Remote Configuration Includes */
+#include "remote_configuration.h"
+
 /* Preprocessor definitions ****************************************************/
 
 /**
@@ -787,14 +793,7 @@ static bool imageActivationHandler( void )
 }
 
 /*-----------------------------------------------------------*/
-typedef struct ConfigStruct{
-    uint32_t delayTimeMs;
-    uint32_t enableLogging;
-} ConfigStruct_t;
 
-extern ConfigStruct_t myConfigStruct;
-
-#define myConfig ( &myConfigStruct )
 
 static bool addOverflowUint32( const uint32_t a,
                                const uint32_t b )
@@ -863,48 +862,6 @@ static bool uintFromString( const char * string,
     }
     ESP_LOGI( TAG, "Return from uIntFromString %d", ret );
     return ret;
-}
-
-void updateRconfPartition()
-{
-    nvs_handle_t nvs_handle;
-    esp_err_t ret;
-    
-    // Open NVS with READWRITE access
-    ret = nvs_open_from_partition("rconf", "rConfParameters", NVS_READWRITE, &nvs_handle);
-    if (ret != ESP_OK) {
-        ESP_LOGI(TAG, "Error (%s) opening NVS rconf handle!\n", esp_err_to_name(ret));
-        return;
-    }
-
-    // Set an integer value for "delayTimeMs"
-    uint32_t delayTimeMs = myConfig->delayTimeMs;
-    ret = nvs_set_u32(nvs_handle, "delayTimeMs", delayTimeMs);
-    if (ret == ESP_OK) {
-        ESP_LOGI(TAG, "delayTimeMs: %ld, set successfully", delayTimeMs);
-    } else {
-        ESP_LOGI(TAG, "Error setting delayTimeMs: %s", esp_err_to_name(ret));
-    }
-
-    // Set an integer value for "enableLogging"
-    uint32_t enableLogging = myConfig->enableLogging; // Example value (1 for true, 0 for false)
-    ret = nvs_set_u32(nvs_handle, "enableLogging", enableLogging);
-    if (ret == ESP_OK) {
-        ESP_LOGI(TAG, "enableLogging: %ld, set successfully", enableLogging);
-    } else {
-        ESP_LOGI(TAG, "Error setting enableLogging: %s", esp_err_to_name(ret));
-    }
-
-    // Commit changes to NVS
-    ret = nvs_commit(nvs_handle);
-    if (ret == ESP_OK) {
-        ESP_LOGI(TAG, "Changes committed successfully to NVS.");
-    } else {
-        ESP_LOGI(TAG, "Error committing changes to NVS: %s", esp_err_to_name(ret));
-    }
-
-    // Close the NVS handle
-    nvs_close(nvs_handle);
 }
 
 
@@ -1696,19 +1653,21 @@ void vStartOTACodeSigningDemo( void )
 
     xCoreMqttAgentManagerRegisterHandler( prvCoreMqttAgentEventHandler );
 
-    // if( ( xResult = xTaskCreate( prvJobHandlerTask,
-    //                              "OTADemoTask",
-    //                              otademoconfigDEMO_TASK_STACK_SIZE,
-    //                              NULL,
-    //                              otademoconfigDEMO_TASK_PRIORITY,
-    //                              NULL ) ) != pdPASS )
-    // {
-    //     ESP_LOGE( TAG, "Failed to start OTA task: errno=%d", xResult );
-    // }
+    if( ( xResult = xTaskCreate( prvJobHandlerTask,
+                                 "JobHandlerTask",
+                                 otademoconfigDEMO_TASK_STACK_SIZE,
+                                 NULL,
+                                 otademoconfigDEMO_TASK_PRIORITY -1,
+                                 NULL ) ) != pdPASS )
+    {
+        ESP_LOGE( TAG, "Failed to start OTA task: errno=%d", xResult );
+    }
 
+    configASSERT( xResult == pdPASS );
 
-        if( ( xResult = xTaskCreate( prvJobHandlerTask,
-                                 "OTADemoTask",
+    //Application
+    if( ( xResult = xTaskCreate( applicationTask,
+                                 "AppkicationTask",
                                  otademoconfigDEMO_TASK_STACK_SIZE,
                                  NULL,
                                  otademoconfigDEMO_TASK_PRIORITY,
