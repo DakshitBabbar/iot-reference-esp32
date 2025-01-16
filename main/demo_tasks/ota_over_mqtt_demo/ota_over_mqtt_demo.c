@@ -979,8 +979,6 @@ static void jsonParser( const char * jobDoc,
         myConfig->enableLogging = enableLogging;
 
         updateRconfPartition();
-
-        esp_restart();
     }
 }                            
 
@@ -1024,7 +1022,13 @@ static bool jobDocumentParser( char * message,
 
 /*-----------------------------------------------------------*/
 
-static int32_t receivedJobDocumentHandler( OtaJobEventData_t * jobDoc )
+typedef enum RemoteConfigResult
+{
+    RemoteConfigUpdateReceived = 0,
+    RemoteConfigUpdateNotReceived
+} RemoteConfigResult_t;
+
+static RemoteConfigResult_t receivedJobDocumentHandler( OtaJobEventData_t * jobDoc )
 {
     ESP_LOGI( TAG, "Entering receivedJobDocumentHandler. \n" );
     bool parseJobDocument = false;
@@ -1033,7 +1037,7 @@ static int32_t receivedJobDocumentHandler( OtaJobEventData_t * jobDoc )
     const char ** jobIdptr = &jobId;
     size_t jobIdLength = 0U;
     OtaPalStatus_t palStatus;
-    OtaPalJobDocProcessingResult_t xResult = OtaPalJobDocFileCreateFailed;
+    RemoteConfigResult_t xResult = RemoteConfigUpdateNotReceived;
 
     memset( &jobFields, 0, sizeof( jobFields ) );
 
@@ -1057,9 +1061,10 @@ static int32_t receivedJobDocumentHandler( OtaJobEventData_t * jobDoc )
     if( parseJobDocument )
     {
         handled = jobDocumentParser( ( char * ) jobDoc->jobData, jobDoc->jobDataLength, &jobFields );
+        xResult = RemoteConfigUpdateReceived;
     }
 
-    return 100;
+    return xResult;
 }
 
 /*-----------------------------------------------------------*/
@@ -1225,7 +1230,7 @@ static bool sendSuccessMessage( void )
                                  messageBufferLength,
                                  0U );
 
-        ESP_LOGI( TAG, "\033[1;32mOTA Completed successfully!\033[0m\n" );
+        ESP_LOGI( TAG, "Partition Updated successfully\n" );
         globalJobId[ 0 ] = 0U;
 
         /* Clean up the job doc buffer so that it is ready for when we
@@ -1249,6 +1254,7 @@ static void processOTAEvents( void )
     static OtaEvent_t lastRecvEventId = OtaAgentEventStart;
     static OtaEvent_t lastRecvEventIdBeforeSuspend = OtaAgentEventStart;
     OtaEventMsg_t nextEvent = { 0 };
+    int count = 0;
 
     OtaReceiveEvent_FreeRTOS( &recvEvent );
     recvEventId = recvEvent.eventId;
@@ -1299,37 +1305,60 @@ static void processOTAEvents( void )
             {
                 switch( receivedJobDocumentHandler( recvEvent.jobEvent ) )
                 {
-                    case 100:
-                        ESP_LOGI( TAG, "Received Remote config Job. \n" );
+                    case RemoteConfigUpdateReceived:
+                        ESP_LOGI( TAG, "Ready To Send Success Message \n" );
+                        ( void ) sendSuccessMessage();
+
+                        /* Short delay before restarting the loop. This allows IoT core
+                            * to update the status of the job. */
+                        vTaskDelay( pdMS_TO_TICKS( 5000 ) );
+
+                        count++;
+                        ESP_LOGI( TAG, "Counter %d \n", count );
+                        esp_restart();
+                        break;
+                    
+                    case RemoteConfigUpdateNotReceived:
+                        ESP_LOGI( TAG, "This is not a remote config update job \n" );
                         nextEvent.eventId = OtaAgentEventRequestJobDocument;
                         OtaSendEvent_FreeRTOS( &nextEvent );
                         otaAgentState = OtaAgentStateRequestingJob;
                         break;
-                    case OtaPalJobDocFileCreated:
-                        ESP_LOGI( TAG, "Received OTA Job. \n" );
-                        nextEvent.eventId = OtaAgentEventRequestFileBlock;
-                        OtaSendEvent_FreeRTOS( &nextEvent );
-                        otaAgentState = OtaAgentStateCreatingFile;
-                        break;
-
-                    case OtaPalJobDocFileCreateFailed:
-                    case OtaPalNewImageBootFailed:
-                    case OtaPalJobDocProcessingStateInvalid:
-                        ESP_LOGI( TAG, "This is not an OTA job \n" );
-                        break;
-
-                    case OtaPalNewImageBooted:
-                        ( void ) sendSuccessMessage();
-
-                        /* Short delay before restarting the loop. This allows IoT core
-                         * to update the status of the job. */
-                        vTaskDelay( pdMS_TO_TICKS( 5000 ) );
-
-                        /* Get ready for new OTA job. */
-                        nextEvent.eventId = OtaAgentEventRequestJobDocument;
-                        OtaSendEvent_FreeRTOS( &nextEvent );
-                        break;
                 }
+
+                // switch( receivedJobDocumentHandler( recvEvent.jobEvent ) )
+                // {
+                //     case 100:
+                //         ESP_LOGI( TAG, "Received Remote config Job. \n" );
+                //         nextEvent.eventId = OtaAgentEventRequestJobDocument;
+                //         OtaSendEvent_FreeRTOS( &nextEvent );
+                //         otaAgentState = OtaAgentStateRequestingJob;
+                //         break;
+                //     case OtaPalJobDocFileCreated:
+                //         ESP_LOGI( TAG, "Received OTA Job. \n" );
+                //         nextEvent.eventId = OtaAgentEventRequestFileBlock;
+                //         OtaSendEvent_FreeRTOS( &nextEvent );
+                //         otaAgentState = OtaAgentStateCreatingFile;
+                //         break;
+
+                //     case OtaPalJobDocFileCreateFailed:
+                //     case OtaPalNewImageBootFailed:
+                //     case OtaPalJobDocProcessingStateInvalid:
+                //         ESP_LOGI( TAG, "This is not an OTA job \n" );
+                //         break;
+
+                //     case OtaPalNewImageBooted:
+                //         ( void ) sendSuccessMessage();
+
+                //         /* Short delay before restarting the loop. This allows IoT core
+                //         * to update the status of the job. */
+                //         vTaskDelay( pdMS_TO_TICKS( 5000 ) );
+
+                //         /* Get ready for new OTA job. */
+                //         nextEvent.eventId = OtaAgentEventRequestJobDocument;
+                //         OtaSendEvent_FreeRTOS( &nextEvent );
+                //         break;
+                // }
             }
 
             break;
@@ -1748,6 +1777,8 @@ bool vOTAProcessMessage( void * pvIncomingPublishCallbackContext,
         {
             ESP_LOGI( TAG, "Line 1749: vOTAProcessMessage");
             memcpy( jobDocBuffer.jobData, pxPublishInfo->pPayload, pxPublishInfo->payloadLength );
+            ESP_LOGI( TAG, "jobDocBuffer.jobData %s\n",jobDocBuffer.jobData);
+            ESP_LOGI( TAG, "Topic Name %s\n ",pxPublishInfo->pTopicName);
             nextEvent.jobEvent = &jobDocBuffer;
             nextEvent.eventId = OtaAgentEventReceivedJobDocument;
 
@@ -1798,6 +1829,8 @@ bool vOTAProcessMessage( void * pvIncomingPublishCallbackContext,
         {
             ESP_LOGI( TAG, "Received update response: %s.", pxPublishInfo->pTopicName );
         }
+
+        /* INSERT JOB UPDATE LOGIC MAYBE */
     }
 
     return isMatch;
