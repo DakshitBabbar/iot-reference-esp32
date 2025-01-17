@@ -10,4 +10,4 @@
 /* Driver Includes */
 #include "driver/gpio.h"
 
-static void applicationTask( void * pvParam );
+void applicationTask( void * pvParam );

@@ -9,7 +9,7 @@
 #include <sdkconfig.h>
 #include "remote_configuration.h"
 
-
+static const char * TAG = "remote_configuration.c";
 
 ConfigStruct_t myConfigStruct = {0};
 

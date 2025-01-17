@@ -25,6 +25,8 @@ endif()
 if(CONFIG_GRI_ENABLE_OTA_DEMO)
     list(APPEND MAIN_SRCS "demo_tasks/ota_over_mqtt_demo/ota_over_mqtt_demo.c")
     list(APPEND MAIN_SRCS "application/LED_Blinker.c")
+    list(APPEND MAIN_SRCS "remote_configuration/remote_configuration.c")
+    list(APPEND MAIN_SRCS "application/hardware_drivers/app_driver.c")
 endif()
 
 # Qualification Test
@@ -44,6 +46,7 @@ set(MAIN_INCLUDE_DIRS
     "networking/mqtt"
     "application"
     "remote_configuration"
+    "application/hardware_drivers"
 )
 
 set(MAIN_REQUIRES

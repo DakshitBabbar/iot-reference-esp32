@@ -1,35 +1,53 @@
 #include "LED_Blinker.h"
 #include "remote_configuration.h"
 
-#define LED_GPIO_PIN   8  // Change this to the GPIO pin connected to your LED
+#include "esp_log.h"
+#include <esp_err.h>
 
+#include "app_driver.h"
+
+//#define LED_GPIO_PIN   8  // Change this to the GPIO pin connected to your LED
+
+static const char * TAG = "LED_Blinker";
 
 #define myConfig ( &myConfigStruct )
 
-static void applicationTask( void * pvParam ){
+
+void applicationTask( void * pvParam ){
     //application task
     ( void ) pvParam;
 
-    // Configure the GPIO pin as output
-    gpio_config_t io_conf = {
-        .pin_bit_mask = (1ULL << LED_GPIO_PIN),  // Set the pin mask for the LED pin
-        .mode = GPIO_MODE_OUTPUT,               // Set the GPIO as output mode
-        .pull_up_en = GPIO_PULLUP_DISABLE,      // Disable pull-up resistor
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,  // Disable pull-down resistor
-        .intr_type = GPIO_INTR_DISABLE          // Disable interrupts
-    };
+    ESP_LOGI( TAG, "LED Initialisation" );
 
-    gpio_config(&io_conf);
-    gpio_set_level(LED_GPIO_PIN, 0);  // Ensures LED is off initially
+    /* Hardware initialisation */
+    esp_err_t ret = app_driver_init();
+
+    ESP_LOGI( TAG, "Before while Loop & GPIO setup" );
 
     while (1) {
         // Turn the LED on
-        gpio_set_level(LED_GPIO_PIN, 1);
+        ESP_LOGI( TAG, "Setting pin to 1");
+
+        ret = app_driver_led_on();
+
+        ESP_LOGI( TAG, "LED ON ret = %s ", esp_err_to_name( ret ));
+
         vTaskDelay(pdMS_TO_TICKS( myConfig->delayTimeMs ));  // Delay for 1 second
 
+        ESP_LOGI( TAG, "After 1st delay %ld", myConfig->delayTimeMs );
+
         // Turn the LED off
-        gpio_set_level(LED_GPIO_PIN, 0);
+        ESP_LOGI( TAG, "Setting pin to 0");
+
+        ret = app_driver_led_off();
+        
+        ESP_LOGI( TAG, "LED OFF ret = %s ", esp_err_to_name( ret ));
+
         vTaskDelay(pdMS_TO_TICKS( myConfig->delayTimeMs ));  // Delay for 1 second
+        ESP_LOGI( TAG, "After 2nd delay %ld", myConfig->delayTimeMs );
+
+        ESP_LOGI( TAG, "Function End.....LOOPING" );
+
     }
 
 }

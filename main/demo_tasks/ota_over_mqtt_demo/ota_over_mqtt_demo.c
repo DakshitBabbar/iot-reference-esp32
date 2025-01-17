@@ -414,6 +414,7 @@ static OtaMqttStatus_t prvMQTTSubscribe( const char * pTopicFilter,
                                          uint16_t topicFilterLength,
                                          uint8_t ucQoS )
 {
+    // ESP_LOGI( TAG, "########Trying to subscribe!!########.\n\n" );
     MQTTStatus_t mqttStatus;
     uint32_t ulNotifiedValue;
     MQTTAgentSubscribeArgs_t xSubscribeArgs = { 0 };
@@ -794,6 +795,12 @@ static bool imageActivationHandler( void )
 
 /*-----------------------------------------------------------*/
 
+typedef enum RemoteConfigResult
+{
+    RemoteConfigUpdateReceived = 0,
+    RemoteConfigUpdateNotificationReceived,
+    RemoteConfigUpdateNotReceived
+} RemoteConfigResult_t;
 
 static bool addOverflowUint32( const uint32_t a,
                                const uint32_t b )
@@ -940,7 +947,7 @@ static void jsonParser( const char * jobDoc,
 }                            
 
 
-static bool jobDocumentParser( char * message,
+static RemoteConfigResult_t jobDocumentParser( char * message,
                                size_t messageLength,
                                AfrOtaJobDocumentFields_t * jobFields )
 {
@@ -948,6 +955,7 @@ static bool jobDocumentParser( char * message,
     const char * jobDoc;
     size_t jobDocLength = 0U;
     int8_t fileIndex = 0;
+    RemoteConfigResult_t xResult = RemoteConfigUpdateNotificationReceived;
 
     /*
      * AWS IoT Jobs library:
@@ -956,40 +964,30 @@ static bool jobDocumentParser( char * message,
     jobDocLength = Jobs_GetJobDocument( message, messageLength, &jobDoc );
 
     if( jobDocLength != 0U )
-    {
-        
-        
+    {   
+        xResult = RemoteConfigUpdateReceived;
         /*
-            * AWS IoT Jobs library:
-            * Parsing the OTA job document to extract all of the parameters needed to download
-            * the new firmware.
-            */
+        * AWS IoT Jobs library:
+        * Parsing the OTA job document to extract all of the parameters needed to download
+        * the new firmware.
+        */
         jsonParser( jobDoc,
-                                jobDocLength,
-                                fileIndex,
-                                jobFields );
-
-
+                    jobDocLength,
+                    fileIndex,
+                    jobFields );
     }
 
     /* File index will be -1 if an error occurred, and 0 if all files were
      * processed. */
-    return true;
+    return xResult;
 }
 
 /*-----------------------------------------------------------*/
-
-typedef enum RemoteConfigResult
-{
-    RemoteConfigUpdateReceived = 0,
-    RemoteConfigUpdateNotReceived
-} RemoteConfigResult_t;
 
 static RemoteConfigResult_t receivedJobDocumentHandler( OtaJobEventData_t * jobDoc )
 {
     ESP_LOGI( TAG, "Entering receivedJobDocumentHandler. \n" );
     bool parseJobDocument = false;
-    bool handled = false;
     char * jobId;
     const char ** jobIdptr = &jobId;
     size_t jobIdLength = 0U;
@@ -1017,8 +1015,7 @@ static RemoteConfigResult_t receivedJobDocumentHandler( OtaJobEventData_t * jobD
 
     if( parseJobDocument )
     {
-        handled = jobDocumentParser( ( char * ) jobDoc->jobData, jobDoc->jobDataLength, &jobFields );
-        xResult = RemoteConfigUpdateReceived;
+        xResult = jobDocumentParser( ( char * ) jobDoc->jobData, jobDoc->jobDataLength, &jobFields );
     }
 
     return xResult;
@@ -1176,7 +1173,7 @@ static bool sendSuccessMessage( void )
          * It will be published on the topic created in the previous step.
          */
         size_t messageBufferLength = Jobs_UpdateMsg( Succeeded,
-                                                     "2",
+                                                     "1",
                                                      1U,
                                                      messageBuffer,
                                                      UPDATE_JOB_MSG_LENGTH );
@@ -1275,11 +1272,17 @@ static void processOTAEvents( void )
                         esp_restart();
                         break;
                     
-                    case RemoteConfigUpdateNotReceived:
-                        ESP_LOGI( TAG, "This is not a remote config update job \n" );
+                    case RemoteConfigUpdateNotificationReceived:
+                        ESP_LOGI( TAG, "Remote Configuration Notification Received without job doc \n" );
                         nextEvent.eventId = OtaAgentEventRequestJobDocument;
                         OtaSendEvent_FreeRTOS( &nextEvent );
                         otaAgentState = OtaAgentStateRequestingJob;
+                    
+                    case RemoteConfigUpdateNotReceived:
+                        ESP_LOGI( TAG, "This is not a remote config update job \n" );
+                        // nextEvent.eventId = OtaAgentEventRequestJobDocument;
+                        // OtaSendEvent_FreeRTOS( &nextEvent );
+                        // otaAgentState = OtaAgentStateRequestingJob;
                         break;
                 }
 
@@ -1550,14 +1553,19 @@ static void prvJobHandlerTask( void * pvParam )
         /* Start the OTA Agent.*/
         OtaInitEvent_FreeRTOS();
 
-        initEvent.eventId = OtaAgentEventRequestJobDocument;
-        OtaSendEvent_FreeRTOS( &initEvent );
+        // initEvent.eventId = OtaAgentEventRequestJobDocument;
+        // OtaSendEvent_FreeRTOS( &initEvent );
 
         /* Wait for the MQTT Connection to go up. */
         while( xSuspendOta == pdTRUE )
         {
             vTaskDelay( pdMS_TO_TICKS( 100 ) );
         }
+
+        ESP_LOGI( TAG, "########Trying to subscribe!!########.\n\n" );
+        prvMQTTSubscribe(OTA_JOB_NOTIFY_TOPIC_FILTER,
+                        OTA_JOB_NOTIFY_TOPIC_FILTER_LENGTH,
+                        1);
 
         while( otaAgentState != OtaAgentStateStopped )
         {
@@ -1657,7 +1665,7 @@ void vStartOTACodeSigningDemo( void )
                                  "JobHandlerTask",
                                  otademoconfigDEMO_TASK_STACK_SIZE,
                                  NULL,
-                                 otademoconfigDEMO_TASK_PRIORITY -1,
+                                 otademoconfigDEMO_TASK_PRIORITY + 1,
                                  NULL ) ) != pdPASS )
     {
         ESP_LOGE( TAG, "Failed to start OTA task: errno=%d", xResult );
