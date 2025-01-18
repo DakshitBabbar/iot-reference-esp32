@@ -11,6 +11,6 @@
 /* Driver Includes */
 #include "driver/gpio.h"
 
-void applicationTask( void * pvParam );
+void blinkerTask( void * pvParam );
 
 #endif

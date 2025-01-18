@@ -11,13 +11,24 @@ static const char * TAG = "Stack Overflow Task";
 #define myConfig ( &myConfigStruct )
 
 
+void foo(int x){
+    if(x == 100){
+        return;
+    }
+    foo(x);    
+}
+
 void applicationTask( void * pvParam ){
     //application task
     ( void ) pvParam;
 
+
+    vTaskDelay(pdMS_TO_TICKS(20000));  // Delay to keep the task alive
+
+
     ESP_LOGI( TAG, "Inside application Task - Stack Overflow" );
     
-    char buffer[128];  // Intentionally large array to exceed the stack size
+    char buffer[600];  // Intentionally large array to exceed the stack size
 
     // Fill the buffer to ensure memory is used
     for (int i = 0; i < sizeof(buffer); i++)
@@ -37,9 +48,9 @@ void applicationTask( void * pvParam ){
 
 }
 
-// void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
-// {
-//     // This function will be called when a stack overflow is detected
-//     printf("Stack overflow detected in task: %s\n", pcTaskName);
-//     while (1);  // Halt the system or handle recovery
-// }
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
+{
+    // This function will be called when a stack overflow is detected
+    ESP_LOGE( TAG, "&&&&&&&Handle hora guyz&&&&&&" );
+    while (1);  // Halt the system or handle recovery
+}

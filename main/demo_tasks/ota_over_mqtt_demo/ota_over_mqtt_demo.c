@@ -96,11 +96,12 @@
 #include "ota_over_mqtt_demo_config.h"
 
 /* Application Includes*/
-//#include "LED_Blinker.h"
+#include "LED_Blinker.h"
 #include "Remote_Debugging.h"
 
 /* Remote Configuration Includes */
 #include "remote_configuration.h"
+#include "logging.h"
 
 /* Preprocessor definitions ****************************************************/
 
@@ -1519,6 +1520,8 @@ static void prvResumeOTA( void )
 
 static void prvJobHandlerTask( void * pvParam )
 {
+    LogInfo( TAG, "APNA LOG");
+
     ( void ) pvParam;
     /* FreeRTOS APIs return status. */
     BaseType_t xResult = pdPASS;
@@ -1674,22 +1677,22 @@ void vStartOTACodeSigningDemo( void )
 
     configASSERT( xResult == pdPASS );
 
-    //Application
-    // if( ( xResult = xTaskCreate( applicationTask,
-    //                              "AppkicationTask",
-    //                              otademoconfigDEMO_TASK_STACK_SIZE,
-    //                              NULL,
-    //                              otademoconfigDEMO_TASK_PRIORITY,
-    //                              NULL ) ) != pdPASS )
-    // {
-    //     ESP_LOGE( TAG, "Failed to start OTA task: errno=%d", xResult );
-    // }
+    // Blinker task creation
+    if( ( xResult = xTaskCreate( blinkerTask,
+                                 "blinkerTask",
+                                 otademoconfigDEMO_TASK_STACK_SIZE,
+                                 NULL,
+                                 otademoconfigDEMO_TASK_PRIORITY,
+                                 NULL ) ) != pdPASS )
+    {
+        ESP_LOGE( TAG, "Failed to start OTA task: errno=%d", xResult );
+    }
 
     configASSERT( xResult == pdPASS );
 
-    //Application
+    //Remote_Debugging task creation
     if( ( xResult = xTaskCreate( applicationTask,
-                                 "AppkicationTask",
+                                 "ApplicationTask",
                                  myConfig->delayTimeMs,
                                  NULL,
                                  tskIDLE_PRIORITY,

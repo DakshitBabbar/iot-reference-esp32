@@ -13,7 +13,7 @@ static const char * TAG = "LED_Blinker";
 #define myConfig ( &myConfigStruct )
 
 
-void applicationTask( void * pvParam ){
+void blinkerTask( void * pvParam ){
     //application task
     ( void ) pvParam;
 

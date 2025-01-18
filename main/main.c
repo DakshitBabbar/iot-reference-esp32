@@ -329,7 +329,6 @@ void app_main( void )
     /* This is used to store the error return of ESP-IDF functions. */
     esp_err_t xEspErrRet;
 
-    LogInfo( TAG, "############################log printing#################################" );
 
     /* Initialize global network context. */
     xRet = prvInitializeNetworkContext();
@@ -364,6 +363,8 @@ void app_main( void )
         /* Initialise the remote config struct with the values in the partition
         * Needs to be done after nvs partitions are initialised and before the tasks start.*/
         initialiseConfigStruct();
+
+        LogInfo( TAG, "############################log printing#################################" );
 
         ESP_LOGI( TAG, "enableLogging: %ld\n", ENABLE_LOGGING );
         ESP_LOGI( TAG, "delayTimeMs: %ld\n", DELAY_TIME_MS );
