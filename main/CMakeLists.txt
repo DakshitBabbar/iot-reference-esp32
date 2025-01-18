@@ -24,7 +24,8 @@ endif()
 # OTA demo
 if(CONFIG_GRI_ENABLE_OTA_DEMO)
     list(APPEND MAIN_SRCS "demo_tasks/ota_over_mqtt_demo/ota_over_mqtt_demo.c")
-    list(APPEND MAIN_SRCS "application/LED_Blinker.c")
+    list(APPEND MAIN_SRCS "application/LED_Blinker/LED_Blinker.c")
+    list(APPEND MAIN_SRCS "application/Remote_Debugging/Remote_Debugging.c")
     list(APPEND MAIN_SRCS "remote_configuration/remote_configuration.c")
     list(APPEND MAIN_SRCS "application/hardware_drivers/app_driver.c")
 endif()
@@ -44,7 +45,8 @@ set(MAIN_INCLUDE_DIRS
     "demo_tasks/temp_sub_pub_and_led_control_demo/hardware_drivers"
     "networking/wifi"
     "networking/mqtt"
-    "application"
+    "application/LED_Blinker"
+    "application/Remote_Debugging"
     "remote_configuration"
     "application/hardware_drivers"
 )

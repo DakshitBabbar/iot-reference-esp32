@@ -96,7 +96,8 @@
 #include "ota_over_mqtt_demo_config.h"
 
 /* Application Includes*/
-#include "LED_Blinker.h"
+//#include "LED_Blinker.h"
+#include "Remote_Debugging.h"
 
 /* Remote Configuration Includes */
 #include "remote_configuration.h"
@@ -1674,11 +1675,24 @@ void vStartOTACodeSigningDemo( void )
     configASSERT( xResult == pdPASS );
 
     //Application
+    // if( ( xResult = xTaskCreate( applicationTask,
+    //                              "AppkicationTask",
+    //                              otademoconfigDEMO_TASK_STACK_SIZE,
+    //                              NULL,
+    //                              otademoconfigDEMO_TASK_PRIORITY,
+    //                              NULL ) ) != pdPASS )
+    // {
+    //     ESP_LOGE( TAG, "Failed to start OTA task: errno=%d", xResult );
+    // }
+
+    configASSERT( xResult == pdPASS );
+
+    //Application
     if( ( xResult = xTaskCreate( applicationTask,
                                  "AppkicationTask",
-                                 otademoconfigDEMO_TASK_STACK_SIZE,
+                                 myConfig->delayTimeMs,
                                  NULL,
-                                 otademoconfigDEMO_TASK_PRIORITY,
+                                 tskIDLE_PRIORITY,
                                  NULL ) ) != pdPASS )
     {
         ESP_LOGE( TAG, "Failed to start OTA task: errno=%d", xResult );
