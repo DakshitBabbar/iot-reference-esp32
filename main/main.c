@@ -79,6 +79,8 @@
     #include "qualification_wrapper_config.h"
 #endif /* CONFIG_GRI_RUN_QUALIFICATION_TEST */
 
+#include "logging.h"
+
 /**
  * @brief The AWS RootCA1 passed in from ./certs/root_cert_auth.pem
  */
@@ -326,6 +328,8 @@ void app_main( void )
 
     /* This is used to store the error return of ESP-IDF functions. */
     esp_err_t xEspErrRet;
+
+    LogInfo( TAG, "############################log printing#################################" );
 
     /* Initialize global network context. */
     xRet = prvInitializeNetworkContext();

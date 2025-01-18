@@ -1,5 +1,5 @@
 # Sample csv file
 key,type,encoding,value
 rConfParameters,namespace,,
-delayTimeMs,data,u32,100
-enableLogging,data,u32,0
+delayTimeMs,data,u32,500
+enableLogging,data,u32,1

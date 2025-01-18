@@ -49,6 +49,7 @@ set(MAIN_INCLUDE_DIRS
     "application/Remote_Debugging"
     "remote_configuration"
     "application/hardware_drivers"
+    "logging"
 )
 
 set(MAIN_REQUIRES

@@ -1,3 +1,6 @@
+#ifndef REMOTE_CONFIGURATION_H
+#define REMOTE_CONFIGURATION_H
+
 /* Standard includes. */
 #include <string.h>
 #include <stdio.h>
@@ -23,3 +26,4 @@ void initialiseConfigStruct(void);
 
 void updateRconfPartition(void);
 
+#endif

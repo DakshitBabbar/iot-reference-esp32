@@ -1,4 +1,5 @@
-/* Includes *******************************************************************/
+#ifndef REMOTE_DEBUGGING_H
+#define REMOTE_DEBUGGING_H
 
 /* FreeRTOS includes. */
 #include "freertos/FreeRTOS.h"
@@ -11,3 +12,5 @@
 #include "driver/gpio.h"
 
 void applicationTask( void * pvParam );
+
+#endif
