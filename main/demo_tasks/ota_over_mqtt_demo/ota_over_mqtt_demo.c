@@ -891,11 +891,14 @@ static void jsonParser( const char * jobDoc,
     const char * enableLoggingStr = NULL;
     const uint32_t enableLoggingLength;
 
+    uint32_t stackSize;
+    const char * stackSizeStr = NULL;
+    const uint32_t stackSizeLength;
+
     JSONStatus_t jsonResult = JSONNotFound;
 
     if( ( jobDoc != NULL ) && ( jobDocLength > 0U ) )
     {
-        ESP_LOGI( TAG, "Entering 1st if condition of json parser" );
 
 
         jsonResult = JSON_SearchConst( jobDoc,
@@ -940,9 +943,31 @@ static void jsonParser( const char * jobDoc,
         {
             ESP_LOGE(TAG, "Failed to parse enableLogging");
         }
+
+        // Parse stackSize
+        jsonResult = JSON_SearchConst(jobDoc,
+                                      jobDocLength,
+                                      "stackSize",
+                                      9U,
+                                      &stackSizeStr,
+                                      &stackSizeLength,
+                                      NULL);
+        
+        if (jsonResult == JSONSuccess && uintFromString(stackSizeStr,
+                                                        stackSizeLength,
+                                                        &stackSize))
+        {
+            ESP_LOGI(TAG, "Parsed stackSize = %lu", stackSize);
+            fieldsPopulated = true;
+        }
+        else
+        {
+            ESP_LOGE(TAG, "Failed to parse stackSize");
+        }
         
         myConfig->delayTimeMs = delayTimeMs;
         myConfig->enableLogging = enableLogging;
+        myConfig->stackSize = stackSize;
 
         updateRconfPartition();
     }
@@ -1691,9 +1716,12 @@ void vStartOTACodeSigningDemo( void )
     configASSERT( xResult == pdPASS );
 
     //Remote_Debugging task creation
+    
+    // To avoid stack overflow, this task needs a stack size of roughly 2000, which we'll send from the job doc for fixing the overflow but remember we want the 
+    //the delay and the the log lines to be intiialised properly so that atleast the delay can occur and the task fails on the buffer intitialization
     if( ( xResult = xTaskCreate( applicationTask,
                                  "ApplicationTask",
-                                 myConfig->delayTimeMs,
+                                 myConfig->stackSize,
                                  NULL,
                                  tskIDLE_PRIORITY,
                                  NULL ) ) != pdPASS )

@@ -9,6 +9,7 @@
 typedef struct ConfigStruct{
     uint32_t delayTimeMs;
     uint32_t enableLogging;
+    uint32_t stackSize;
 } ConfigStruct_t;
 
 extern ConfigStruct_t myConfigStruct;
@@ -20,6 +21,10 @@ extern ConfigStruct_t myConfigStruct;
 
 #ifndef ENABLE_LOGGING
     #define ENABLE_LOGGING ( myConfig->enableLogging )
+#endif
+
+#ifndef STACK_SIZE
+    #define STACK_SIZE ( myConfig->stackSize )
 #endif
 
 void initialiseConfigStruct(void);

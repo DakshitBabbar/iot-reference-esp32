@@ -22,8 +22,8 @@ void applicationTask( void * pvParam ){
     //application task
     ( void ) pvParam;
 
-
-    vTaskDelay(pdMS_TO_TICKS(20000));  // Delay to keep the task alive
+    // Delay to allow the jobHandler Task to run so that stack overflow could be fixed
+    vTaskDelay(pdMS_TO_TICKS(20000));  
 
 
     ESP_LOGI( TAG, "Inside application Task - Stack Overflow" );
@@ -48,9 +48,9 @@ void applicationTask( void * pvParam ){
 
 }
 
-void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
-{
-    // This function will be called when a stack overflow is detected
-    ESP_LOGE( TAG, "&&&&&&&Handle hora guyz&&&&&&" );
-    while (1);  // Halt the system or handle recovery
-}
+// void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
+// {
+//     // This function will be called when a stack overflow is detected
+//     ESP_LOGE( TAG, "&&&&&&&Handle hora guyz&&&&&&" );
+//     while (1);  // Halt the system or handle recovery
+// }
