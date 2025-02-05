@@ -6,6 +6,8 @@
 
 #include "app_driver.h"
 
+#include "logging.h"
+
 static const char * TAG = "Stack Overflow Task";
 
 #define myConfig ( &myConfigStruct )
@@ -26,7 +28,7 @@ void applicationTask( void * pvParam ){
     vTaskDelay(pdMS_TO_TICKS(20000));  
 
 
-    ESP_LOGI( TAG, "Inside application Task - Stack Overflow" );
+    LogInfo( TAG, "Inside application Task - Stack Overflow" );
     
     char buffer[600];  // Intentionally large array to exceed the stack size
 
@@ -36,13 +38,13 @@ void applicationTask( void * pvParam ){
         buffer[i] = 'A';
     }
 
-    ESP_LOGI( TAG, "This line may never print because of stack overflow" );
+    LogInfo( TAG, "This line may never print because of stack overflow" );
 
     // Simulate task loop
     while (1)
     {
 
-        ESP_LOGI( TAG, "Delaying now" );
+        LogInfo( TAG, "Delaying now" );
         vTaskDelay(pdMS_TO_TICKS(1000));  // Delay to keep the task alive
     }
 

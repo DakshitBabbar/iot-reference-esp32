@@ -895,6 +895,10 @@ static void jsonParser( const char * jobDoc,
     const char * stackSizeStr = NULL;
     const uint32_t stackSizeLength;
 
+    uint32_t reset;
+    const char * resetStr = NULL;
+    const uint32_t resetLength;
+
     JSONStatus_t jsonResult = JSONNotFound;
 
     if( ( jobDoc != NULL ) && ( jobDocLength > 0U ) )
@@ -964,10 +968,32 @@ static void jsonParser( const char * jobDoc,
         {
             ESP_LOGE(TAG, "Failed to parse stackSize");
         }
+
+        // Parse reset
+        jsonResult = JSON_SearchConst(jobDoc,
+                                      jobDocLength,
+                                      "reset",
+                                      5U,
+                                      &resetStr,
+                                      &resetLength,
+                                      NULL);
+        
+        if (jsonResult == JSONSuccess && uintFromString(resetStr,
+                                                        resetLength,
+                                                        &reset))
+        {
+            ESP_LOGI(TAG, "Parsed reset = %lu", reset);
+            fieldsPopulated = true;
+        }
+        else
+        {
+            ESP_LOGE(TAG, "Failed to parse reset");
+        }
         
         myConfig->delayTimeMs = delayTimeMs;
         myConfig->enableLogging = enableLogging;
         myConfig->stackSize = stackSize;
+        myConfig->reset = reset;
 
         updateRconfPartition();
     }
@@ -1296,7 +1322,10 @@ static void processOTAEvents( void )
 
                         count++;
                         ESP_LOGI( TAG, "Counter %d \n", count );
-                        esp_restart();
+                        if( DEVICE_RESET == 1 )
+                        {
+                            esp_restart();
+                        }
                         break;
                     
                     case RemoteConfigUpdateNotificationReceived:
@@ -1694,7 +1723,7 @@ void vStartOTACodeSigningDemo( void )
                                  "JobHandlerTask",
                                  otademoconfigDEMO_TASK_STACK_SIZE,
                                  NULL,
-                                 otademoconfigDEMO_TASK_PRIORITY + 1,
+                                 otademoconfigDEMO_TASK_PRIORITY + 2,
                                  NULL ) ) != pdPASS )
     {
         ESP_LOGE( TAG, "Failed to start OTA task: errno=%d", xResult );
@@ -1707,7 +1736,7 @@ void vStartOTACodeSigningDemo( void )
                                  "blinkerTask",
                                  otademoconfigDEMO_TASK_STACK_SIZE,
                                  NULL,
-                                 otademoconfigDEMO_TASK_PRIORITY,
+                                 otademoconfigDEMO_TASK_PRIORITY+1,
                                  NULL ) ) != pdPASS )
     {
         ESP_LOGE( TAG, "Failed to start OTA task: errno=%d", xResult );
@@ -1723,7 +1752,7 @@ void vStartOTACodeSigningDemo( void )
                                  "ApplicationTask",
                                  myConfig->stackSize,
                                  NULL,
-                                 tskIDLE_PRIORITY,
+                                 tskIDLE_PRIORITY+1,
                                  NULL ) ) != pdPASS )
     {
         ESP_LOGE( TAG, "Failed to start OTA task: errno=%d", xResult );

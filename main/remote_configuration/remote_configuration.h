@@ -10,6 +10,7 @@ typedef struct ConfigStruct{
     uint32_t delayTimeMs;
     uint32_t enableLogging;
     uint32_t stackSize;
+    uint32_t reset;
 } ConfigStruct_t;
 
 extern ConfigStruct_t myConfigStruct;
@@ -25,6 +26,10 @@ extern ConfigStruct_t myConfigStruct;
 
 #ifndef STACK_SIZE
     #define STACK_SIZE ( myConfig->stackSize )
+#endif
+
+#ifndef DEVICE_RESET
+    #define DEVICE_RESET ( myConfig->reset )
 #endif
 
 void initialiseConfigStruct(void);

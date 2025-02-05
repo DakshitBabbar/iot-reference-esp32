@@ -57,6 +57,14 @@ void initialiseConfigStruct(void)
 
     myConfig->stackSize = stackSize;
 
+    // Read an integer value
+    uint32_t reset;
+    if (nvs_get_u32( nvs_handle, "reset", &reset) == ESP_OK ) {
+        ESP_LOGI( TAG, "reset: %ld, loaded\n", reset );
+    }
+
+    myConfig->reset = reset;
+
     nvs_close(nvs_handle);
 }
 /* remote-config adds */
@@ -96,9 +104,18 @@ void updateRconfPartition(void)
     uint32_t stackSize = myConfig->stackSize; // Example value (1 for true, 0 for false)
     ret = nvs_set_u32(nvs_handle, "stackSize", stackSize);
     if (ret == ESP_OK) {
-        ESP_LOGI(TAG, "stackSize: %ld, set successfully", enableLogging);
+        ESP_LOGI(TAG, "stackSize: %ld, set successfully", stackSize);
     } else {
         ESP_LOGI(TAG, "Error setting stackSize: %s", esp_err_to_name(ret));
+    }
+
+    // Set an integer value for "reset"
+    uint32_t reset = myConfig->reset; // Example value (1 for true, 0 for false)
+    ret = nvs_set_u32(nvs_handle, "reset", reset);
+    if (ret == ESP_OK) {
+        ESP_LOGI(TAG, "reset: %ld, set successfully", reset);
+    } else {
+        ESP_LOGI(TAG, "Error setting reset: %s", esp_err_to_name(ret));
     }
 
     // Commit changes to NVS

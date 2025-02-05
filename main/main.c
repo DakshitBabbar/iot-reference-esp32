@@ -366,9 +366,10 @@ void app_main( void )
 
         LogInfo( TAG, "############################log printing#################################" );
 
-        ESP_LOGI( TAG, "enableLogging: %ld\n", ENABLE_LOGGING );
-        ESP_LOGI( TAG, "delayTimeMs: %ld\n", DELAY_TIME_MS );
-        ESP_LOGI( TAG, "stackSize: %ld\n", STACK_SIZE );
+        LogInfo( TAG, "enableLogging: %ld\n", ENABLE_LOGGING );
+        LogInfo( TAG, "delayTimeMs: %ld\n", DELAY_TIME_MS );
+        LogInfo( TAG, "stackSize: %ld\n", STACK_SIZE );
+        LogInfo( TAG, "reset: %ld\n", DEVICE_RESET );
 
 
     #endif
