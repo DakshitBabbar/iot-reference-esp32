@@ -1723,7 +1723,7 @@ void vStartOTACodeSigningDemo( void )
                                  "JobHandlerTask",
                                  otademoconfigDEMO_TASK_STACK_SIZE,
                                  NULL,
-                                 otademoconfigDEMO_TASK_PRIORITY + 2,
+                                 otademoconfigDEMO_TASK_PRIORITY + 1,
                                  NULL ) ) != pdPASS )
     {
         ESP_LOGE( TAG, "Failed to start OTA task: errno=%d", xResult );
@@ -1736,7 +1736,7 @@ void vStartOTACodeSigningDemo( void )
                                  "blinkerTask",
                                  otademoconfigDEMO_TASK_STACK_SIZE,
                                  NULL,
-                                 otademoconfigDEMO_TASK_PRIORITY+1,
+                                 otademoconfigDEMO_TASK_PRIORITY,
                                  NULL ) ) != pdPASS )
     {
         ESP_LOGE( TAG, "Failed to start OTA task: errno=%d", xResult );
@@ -1752,7 +1752,7 @@ void vStartOTACodeSigningDemo( void )
                                  "ApplicationTask",
                                  myConfig->stackSize,
                                  NULL,
-                                 tskIDLE_PRIORITY+1,
+                                 tskIDLE_PRIORITY,
                                  NULL ) ) != pdPASS )
     {
         ESP_LOGE( TAG, "Failed to start OTA task: errno=%d", xResult );

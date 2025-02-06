@@ -3,5 +3,5 @@ key,type,encoding,value
 rConfParameters,namespace,,
 delayTimeMs,data,u32,5000
 enableLogging,data,u32,0
-stackSize,data,u32,125
+stackSize,data,u32,500
 reset,data,u32,1

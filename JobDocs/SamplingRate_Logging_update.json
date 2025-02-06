@@ -1,0 +1,6 @@
+{
+    "delayTimeMs": 500,
+    "enableLogging": 1,
+    "stackSize" : 2000,
+    "reset" : 0
+}

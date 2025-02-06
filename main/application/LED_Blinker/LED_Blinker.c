@@ -10,7 +10,7 @@
 
 //#define LED_GPIO_PIN   8  // Change this to the GPIO pin connected to your LED
 
-static const char * TAG = "LED_Blinker";
+static const char * TAG = "Sensor sampling task";
 
 #define myConfig ( &myConfigStruct )
 

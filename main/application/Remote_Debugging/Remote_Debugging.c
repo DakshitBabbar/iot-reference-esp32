@@ -25,10 +25,10 @@ void applicationTask( void * pvParam ){
     ( void ) pvParam;
 
     // Delay to allow the jobHandler Task to run so that stack overflow could be fixed
-    vTaskDelay(pdMS_TO_TICKS(20000));  
+    vTaskDelay(pdMS_TO_TICKS(30000));  
 
 
-    LogInfo( TAG, "Inside application Task - Stack Overflow" );
+    ESP_LOGI( TAG, "Inside application Task - Stack Overflow" );
     
     char buffer[600];  // Intentionally large array to exceed the stack size
 
@@ -38,13 +38,13 @@ void applicationTask( void * pvParam ){
         buffer[i] = 'A';
     }
 
-    LogInfo( TAG, "This line may never print because of stack overflow" );
+    ESP_LOGI( TAG, "This line may never print because of stack overflow" );
 
     // Simulate task loop
     while (1)
     {
 
-        LogInfo( TAG, "Delaying now" );
+        ESP_LOGI( TAG, "Delaying now" );
         vTaskDelay(pdMS_TO_TICKS(1000));  // Delay to keep the task alive
     }
 
